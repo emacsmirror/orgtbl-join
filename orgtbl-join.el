@@ -606,6 +606,16 @@ and the other way around."
 	(setq start (match-end 1))))
     (orgtbl-join--list-get result)))
 
+(defun orgtbl-join--merge-list-into-single-string (cols)
+  "Create a string representing the list COLS.
+This is the opposite of `orgtbl-join--split-string-with-quotes'."
+  (if (listp cols)
+      (mapconcat
+       (lambda (x)
+         (format "%s" x)) ;; x already a string? returns it unchanged
+       cols " ")
+    cols))
+
 (defun orgtbl-join--colname-to-int (colname table &optional err)
   "Convert the COLNAME into an integer.
 COLNAME is a column name of TABLE.
@@ -1236,7 +1246,7 @@ The
 (defvar orgtbl-join-history-cols ())
 
 (defun orgtbl-join--parse-header-arguments (type)
-  "If (point) is on a #+begin: line, parse it, and return an a-list.
+  "If (point) is on a #+begin: line, parse it, and return a plist.
 TYPE is \"join\", or possibly any type of block.
 If the line the (point) is on do not match TYPE, return nil."
   (let ((line (buffer-substring-no-properties
@@ -1245,10 +1255,18 @@ If the line the (point) is on do not match TYPE, return nil."
         (case-fold-search t))
     (and
      (string-match
-      (rx bos (* blank) "#+begin:" (* blank) (group (+ word)))
+      (rx bos (* blank) "#+begin:" (* blank) (group (+ word)) (group (* nonl)) eos)
       line)
      (equal (match-string 1 line) type)
-     (cdr (org-babel-parse-header-arguments line t)))))
+     (let ((list (read (concat "(" (match-string 2 line) ")"))))
+       (cl-loop
+        for pair on list
+        for val = (cadr pair)
+        do
+        (if (symbolp val)
+            (setcar (cdr pair) (symbol-name val)))
+        (setq pair (cdr pair)))
+       list))))
 
 (defun orgtbl-join--dismiss-help ()
   "Hide the wizard help window."
@@ -1570,43 +1588,44 @@ The updated PARAMS is returned."
 
       (pop allcolumns)
 
-      ;; There may be ambiguities with $1 $2 $3 names.
-      ;; Do they refer to columns in the master table or in any of
-      ;; the references tables?
-      ;; There also might be duplicate column names which create ambiguity.
-      (let* ((dup
-              (cl-loop
-               for el on allcolumns
-               if (member (car el) (cdr el))
-               collect (car el)))
-             (dupmsg
-              (if dup
-                  (format
-                   "\nBeware, those columns have duplicate names:\n  %s"
-                   (mapconcat
-                    (lambda (x) (format " ~%s~" x))
-                    dup))
-                "")))
-        (orgtbl-join--display-help
-         :cols
-         (format
-          "%s%s"
-          (mapconcat
-           (lambda (x) (format " ~%s~" x))
-           allcolumns)
-          dupmsg)))
-      (let ((cols
-             (if expert
-                 (orgtbl-join--nil-if-empty
-                  (read-string
-                   "(Optional) specify output columns: "
-                   (orgtbl-join--plist-get-remove params :cols)
-                   'orgtbl-join-history-cols)))))
-        (if cols
-            (setq newparams
-                  `(,@newparams
-                    :cols
-                    ,cols))))
+      (let ((cols (orgtbl-join--plist-get-remove params :cols)))
+        (when (or cols expert)
+          ;; There may be ambiguities with $1 $2 $3 names.
+          ;; Do they refer to columns in the master table or in any of
+          ;; the references tables?
+          ;; There also might be duplicate column names which create ambiguity.
+          (let* ((dup
+                  (cl-loop
+                   for el on allcolumns
+                   if (member (car el) (cdr el))
+                   collect (car el)))
+                 (dupmsg
+                  (if dup
+                      (format
+                       "\nBeware, those columns have duplicate names:\n  %s"
+                       (mapconcat
+                        (lambda (x) (format " ~%s~" x))
+                        dup))
+                    "")))
+            (orgtbl-join--display-help
+             :cols
+             (format
+              "%s%s"
+              (mapconcat
+               (lambda (x) (format " ~%s~" x))
+               allcolumns)
+              dupmsg)))
+          (setq cols
+                (orgtbl-join--nil-if-empty
+                 (read-string
+                  "(Optional) specify output columns: "
+                  (orgtbl-join--merge-list-into-single-string cols)
+                  'orgtbl-join-history-cols)))
+          (if cols
+              (setq newparams
+                    `(,@newparams
+                      :cols
+                      ,cols)))))
       )
 
     ;; recover parameters not taken into account by the wizard
@@ -1676,7 +1695,7 @@ When EXPERT is nil, only basic parameters are queried.
 Note that when an expert parameter was set prior to entering the wizard,
 it is queried even when EXPERT is nil."
   (interactive "P")
-  (let* ((oldline (flatten-list (orgtbl-join--parse-header-arguments "join")))
+  (let* ((oldline (orgtbl-join--parse-header-arguments "join"))
          (params
           (save-excursion (orgtbl-join--wizard-join-create-update nil oldline expert))))
     (when oldline
@@ -1860,15 +1879,15 @@ individual parameter for an easier reading."
          (point (progn (end-of-line) (point)))
          (ref-table))
     (let ((struct (orgtbl-join--parse-locator
-                   (orgtbl-join--alist-get-remove :mas-table line))))
+                   (orgtbl-join--plist-get-remove line :mas-table))))
       (insert "\n#+join: :mas-file "   (or (aref struct 0) ""))
       (insert "\n#+join: :mas-name "   (or (aref struct 1) ""))
       (insert "\n#+join: :mas-orgid "  (or (aref struct 2) ""))
       (insert "\n#+join: :mas-params " (or (aref struct 3) ""))
       (insert "\n#+join: :mas-slice "  (or (aref struct 4) "")))
     (insert "\n#+join: :mas-column "
-            (or (orgtbl-join--alist-get-remove :mas-column line) ""))
-    (while (setq ref-table (orgtbl-join--alist-get-remove :ref-table line))
+            (or (orgtbl-join--plist-get-remove line :mas-column) ""))
+    (while (setq ref-table (orgtbl-join--plist-get-remove line :ref-table))
       (let ((struct (orgtbl-join--parse-locator ref-table)))
         (insert "\n#+join: :ref-file "   (or (aref struct 0) ""))
         (insert "\n#+join: :ref-name "   (or (aref struct 1) ""))
@@ -1876,19 +1895,21 @@ individual parameter for an easier reading."
         (insert "\n#+join: :ref-params " (or (aref struct 3) ""))
         (insert "\n#+join: :ref-slice "  (or (aref struct 4) "")))
       (insert "\n#+join: :ref-column "
-              (or (orgtbl-join--alist-get-remove :ref-column line) ""))
+              (or (orgtbl-join--plist-get-remove line :ref-column) ""))
       (insert "\n#+join: :full "
-              (or (orgtbl-join--alist-get-remove :full line) "")))
+              (or (orgtbl-join--plist-get-remove line :full) "")))
     (insert "\n#+join: :cols "
-            (or (orgtbl-join--alist-get-remove :cols       line) ""))
+            (orgtbl-join--merge-list-into-single-string
+             (or (orgtbl-join--plist-get-remove line :cols) "")))
     (insert "\n#+join: :cond "
-            (or (orgtbl-join--alist-get-remove :cond       line) ""))
+            (format "%s" (or  (orgtbl-join--plist-get-remove line :cond) "")))
     (insert "\n#+join: :post "
-            (or (orgtbl-join--alist-get-remove :post       line) ""))
+            (format "%s" (or  (orgtbl-join--plist-get-remove line :post) "")))
     (cl-loop
-     for pair in line
+     for pair on line
      if (car pair)
-     do (insert (format "\n#+join: %s %s" (car pair) (cdr pair))))
+     do (insert (format "\n#+join: %s %s" (car pair) (cadr pair)))
+     do (setq pair (cdr pair)))
     (goto-char point)
     (beginning-of-line)
     (forward-word 2)
