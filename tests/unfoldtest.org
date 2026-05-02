@@ -92,10 +92,7 @@ buffer. When done, the buffer and the original, untouched
  "<down> <tab> 1 2 <tab> <return>"
  "<down> <down> <down> <down> <tab> c o <tab> <return>"
  "<down> <tab> <end>"
- "<down> <down> <up> <tab> <return>"
- "<down> <tab> <return>"
- "<down> <tab>"
- "<up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <left> <left> <left> <tab>"
+ "<up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <left> <left> <left> <tab>"
  "C-a C-c C-c"
  ))
 #+end_src

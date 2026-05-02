@@ -23,7 +23,13 @@ buffer. When done, the buffer and the original, untouched
 
 #+begin_src elisp :results none
 ;; define a utility to run a unit test
-(defun orgtbl-join-wizard-test (&rest args)
+(defun orgtbl-join-wizard-test (keep &rest args)
+  (forward-line 1)
+  (unless keep
+    (org-mark-element)
+    (delete-forward-char 1)
+    (insert "\n")
+    (forward-line -1))
   (execute-kbd-macro
    (kbd
     (mapconcat
@@ -56,14 +62,14 @@ buffer. When done, the buffer and the original, untouched
 (org-cycle '(64))
 
 ;; Clean results from prior tests
-(save-excursion
-  (goto-char (point-min))
-  (replace-regexp
-   (rx
-    bol "#+begin: " (* not-newline) "\n"
-    (*? (* any) "\n")
-    "#+end:" (* any) "\n")
-   ""))
+;;(save-excursion
+;;  (goto-char (point-min))
+;;  (replace-regexp
+;;   (rx
+;;    bol "#+begin: " (* not-newline) "\n"
+;;    (*? (* any) "\n")
+;;    "#+end:" (* any) "\n")
+;;   ""))
 
 ;; call all wizard invocations
 (goto-char (point-min))
@@ -95,12 +101,14 @@ buffer. When done, the buffer and the original, untouched
 | Bolivia   | South America |
 | Laos      | Asia          |
 
+* Recreate join with expert wizard
+
 #+begin_src elisp :results none
-(orgtbl-join-wizard-test
+(orgtbl-join-wizard-test nil
  :init    "C-u C-c C-x x jo <tab> <return>"
  :isid    "n"
  :file    "<return>"
- :name    "<tab> C-a C-k land <tab> <return>"
+ :name    "land <tab> <return>"
  :params  "<return>"
  :slice   "<return>"
  :isid    "n"
@@ -113,6 +121,7 @@ buffer. When done, the buffer and the original, untouched
  :full    "<return>"
  :another "n")
 #+end_src
+
 #+BEGIN: join :mas-table "lando" :ref-table "geography-a.json:(json)" :mas-column "country" :ref-column "$2" :full "mas"
 | country   | continent     |
 |-----------+---------------+--------------+----------+----------|
@@ -131,16 +140,10 @@ buffer. When done, the buffer and the original, untouched
 | Laos      | Asia          |
 #+END:
 
-** Try modifying existing BEGIN..END
+* Try modifying existing BEGIN..END
 
-do not remove this next line: it is a template for the following test!
-!+BEGIN: join :mas-table "lando" :ref-table "country.csv:(csv header)" :mas-column "country" :ref-column "Country" :full "mas" :cols "continent country Population 'Yearly Increase'"
 #+begin_src elisp :results none
-(orgtbl-join-wizard-test
- :init    "C-r ! + B E G I N : C-a C-f C-SPC C-e M-w"
- :init    "C-s # + e n d _ s r c C-a C-n # C-y <return>"
- :init    "#+END: <return>"
- :init    "C-a C-p C-p"
+(orgtbl-join-wizard-test t
  :init    "C-u C-c C-x x joi <tab> <return>"
  :file    "<return>"
  :name    "<return>"
@@ -154,8 +157,10 @@ do not remove this next line: it is a template for the following test!
  :mascol  "<return>"
  :refcol  "<return>"
  :full    "<return>"
- :another "n")
+ :another "n"
+ :cols    "<return>")
 #+end_src
+
 #+BEGIN: join :mas-table "lando" :ref-table "country.csv:(csv header)" :mas-column "country" :ref-column "Country" :full "mas" :cols "continent country Population 'Yearly Increase'"
 | continent     | country   | Population | Yearly Increase |
 |---------------+-----------+------------+-----------------|
@@ -172,7 +177,7 @@ do not remove this next line: it is a template for the following test!
 * Distant colors
 
 #+begin_src elisp :results none
-(orgtbl-join-wizard-test
+(orgtbl-join-wizard-test nil
  :init    "C-u C-c C-x x jo <tab> <return>"
  :isid    "n"
  :file    "unittes <tab> <return>"
@@ -207,6 +212,7 @@ do not remove this next line: it is a template for the following test!
  :full    "<return>"
  :another "n")
 #+end_src
+
 #+BEGIN: join :mas-table "unittests.org:colors" :ref-table "unittests.org:spanish_colors" :mas-column "name" :ref-column "color" :full "mas" :ref-table "unittests.org:12bits_colors" :mas-column "name" :ref-column "color" :full "mas" :ref-table "unittests.org:esperanto_colors" :mas-column "name" :ref-column "color" :full "mas"
 | name   | español  | 12bits | esperanto |
 |--------+----------+--------+-----------|
@@ -221,7 +227,7 @@ do not remove this next line: it is a template for the following test!
 * :post
 
 #+begin_src elisp :results none
-(orgtbl-join-wizard-test
+(orgtbl-join-wizard-test nil
  :init    "C-u C-c C-x x joi <tab> <return>"
  :isid    "n"
  :file    "unitt <tab> <return>"
@@ -238,6 +244,7 @@ do not remove this next line: it is a template for the following test!
  :full    "<return>"
  :another "n")
 #+end_src
+
 #+BEGIN: join :mas-table "unittests.org:meal_with_header" :ref-table "unittests.org:nut_with_header" :mas-column "product" :ref-column "type" :full "mas"
 | product   |   quty | Carb | Fiber | Sugar | Protein |
 | common    |     in | ohyd |       |       |         |
@@ -253,12 +260,12 @@ do not remove this next line: it is a template for the following test!
 | corn      |    250 | 21.3 |   4.7 |   1.8 |     2.8 |
 #+END:
 
-* preserve #+tblfm: line
+* Preserve #+tblfm: line
 
 Add a computed column with onces (converted from grams)
 
 #+begin_src elisp :results none
-(orgtbl-join-wizard-test
+(orgtbl-join-wizard-test t
  :init    "C-c C-x x joi <tab> <return>"
  :file    "<return>"
  :name    "<return>"
@@ -266,21 +273,24 @@ Add a computed column with onces (converted from grams)
  :name    "<return>"
  :mascol  "<return>"
  :refcol  "<return>"
- :full    "<return>"
 )
 #+end_src
- #+BEGIN: join :mas-table "unittests.org:meal_with_header" :ref-table "unittests.org:nut_with_header" :mas-column "product" :ref-column "type" :full "mas"
- | product   |   quty | Carb | Fiber | Sugar | Protein |      |
- | common    |     in | ohyd |       |       |         |      |
- | name      | gramms | rate |       |       |         |      |
- | (english) |        |      |       |       |         |      |
- |-----------+--------+------+-------+-------+---------+------|
- | onion     |     70 |  9.0 |   1.3 |   4.4 |     1.3 |  2.5 |
- | unknown   |    999 |      |       |       |         | 35.2 |
- | tomatoe   |    120 |  3.4 |   0.6 |   2.1 |     0.8 |  4.2 |
- | eggplant  |    300 |  8.6 |   2.5 |   3.2 |     0.8 | 10.6 |
- | eggplant  |    300 |  8.7 |   2.6 |   3.3 |     0.9 | 10.6 |
- | eggplant  |    300 |  8.5 |     ? |     ? |       ? | 10.6 |
- | corn      |    250 | 21.3 |   4.7 |   1.8 |     2.8 |  8.8 |
- #+TBLFM: $7=$2*0.03527396;f1
- #+END:
+
+#+BEGIN: join :mas-table "unittests.org:meal_with_header" :ref-table "unittests.org:nut_with_header" :mas-column "product" :ref-column "type" :full "mas"
+#+name: fadenado
+
+#+caption: estas fadenita
+| product   |   quty | Carb | Fiber | Sugar | Protein |      |
+| common    |     in | ohyd |       |       |         |      |
+| name      | gramms | rate |       |       |         |      |
+| (english) |        |      |       |       |         |      |
+|-----------+--------+------+-------+-------+---------+------|
+| onion     |     70 |  9.0 |   1.3 |   4.4 |     1.3 |  2.5 |
+| unknown   |    999 |      |       |       |         | 35.2 |
+| tomatoe   |    120 |  3.4 |   0.6 |   2.1 |     0.8 |  4.2 |
+| eggplant  |    300 |  8.6 |   2.5 |   3.2 |     0.8 | 10.6 |
+| eggplant  |    300 |  8.7 |   2.6 |   3.3 |     0.9 | 10.6 |
+| eggplant  |    300 |  8.5 |     ? |     ? |       ? | 10.6 |
+| corn      |    250 | 21.3 |   4.7 |   1.8 |     2.8 |  8.8 |
+#+TBLFM: $7=$2*0.03527396;f1
+#+END:

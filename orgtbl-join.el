@@ -1222,22 +1222,31 @@ table has a header, or a dollar form: $1, $2, and so on.
 The
 #+BEGIN RECEIVE ORGTBL destination_table_name
 #+END RECEIVE ORGTBL destination_table_name"
+;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
   (interactive)
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content)))
-    (if (and content
-	     (let ((case-fold-search t))
-	       (string-match
-		(rx bos
-                    (+
-                     (* (any " \t")) "#+" (* not-newline) "\n"))
-		content)))
-	(insert (match-string 0 content)))
+    (if content
+	(let ((case-fold-search t))
+	  (string-match
+	   (rx bos
+               (* (* blank) "\n")
+               (group (* (* blank) (? "#+" (* nonl)) "\n")))
+	   content)
+          (insert
+           (replace-regexp-in-string
+            (rx bol (* (or blank "\n")) eos)
+            ""
+            (replace-regexp-in-string
+             (rx bol "#+tblfm" (* (or any "\n")) eos)
+             ""
+             (match-string 1 content))))))
     (orgtbl-join--insert-elisp-table
      (orgtbl-join--join-all-ref-tables
       (orgtbl-join-table-from-any-ref (plist-get params :mas-table))
       params))
     (orgtbl-join--table-recalculate content formula)))
+;; bazilo]
 
 ;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
 
@@ -1700,20 +1709,17 @@ it is queried even when EXPERT is nil."
   (interactive "P")
   (let* ((oldline (orgtbl-join--parse-header-arguments "join"))
          (params
-          (save-excursion (orgtbl-join--wizard-join-create-update nil oldline expert)))
-         tblfm)
-    (when oldline
-      (org-mark-element)
-      (setq tblfm
-            (orgtbl-join--recover-TBLFM
-             (buffer-substring-no-properties
-              (region-beginning) (1- (region-end)))))
-      (delete-region (region-beginning) (1- (region-end))))
-    (org-create-dblock params)
-    (when tblfm
+          (save-excursion (orgtbl-join--wizard-join-create-update nil oldline expert))))
+    (if (not oldline)
+        (org-create-dblock params)
+      (beginning-of-line)
+      (kill-line)
+      (org-create-dblock params)
+      (delete-blank-lines)
       (forward-line 1)
-      (insert "\n" tblfm)
-      (forward-line -2))
+      (kill-line 1)
+      (forward-line -1)
+      (delete-blank-lines))
     (org-update-dblock)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
