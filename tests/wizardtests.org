@@ -278,7 +278,6 @@ Add a computed column with onces (converted from grams)
 
 #+BEGIN: join :mas-table "unittests.org:meal_with_header" :ref-table "unittests.org:nut_with_header" :mas-column "product" :ref-column "type" :full "mas"
 #+name: fadenado
-
 #+caption: estas fadenita
 | product   |   quty | Carb | Fiber | Sugar | Protein |      |
 | common    |     in | ohyd |       |       |         |      |

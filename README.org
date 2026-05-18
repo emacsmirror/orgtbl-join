@@ -6,8 +6,15 @@ One table (the master table) is grown by selectively appending columns of
 other tables (the reference tables).
 
 * New
-The wizard now offers the basic and expert modes.
-See [[#guiding-traditional-wizard][Guiding (traditional) wizard]].
+Blocks surrounded by =#+begin:= =#+end:= may contain an old table, and
+also several tags like =#+name:=, =#+plot:=, =#+tblfm:= and any other
+information.
+
+Upon refresh (=C-c C-c=) or wizard update (=C-c C-x x=) the content of the
+block is preserved.
+
+Previously, only =#+tblfm:= was preserved (and enriched by additional
+formulas in a possible =:formula= parameter).
 
 * Table of Contents
 :PROPERTIES:
@@ -1035,6 +1042,8 @@ Contributors
 - Aggregation of the titles of this README.
 - New free-form wizard.
 - Wizard can now be called in basic or expert mode.
+- Preserve every side lines in =#+begin:= … =#+end:= blocks upon refresh
+  or wizard update.
 
 * GPL 3 License
 :PROPERTIES:

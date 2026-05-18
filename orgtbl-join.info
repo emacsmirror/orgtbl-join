@@ -91,8 +91,15 @@ File: orgtbl-join.info,  Node: New,  Next: Example,  Prev: Top,  Up: Top
 1 New
 *****
 
-The wizard now offers the basic and expert modes.  See *note Guiding
-(traditional) wizard::.
+Blocks surrounded by ‘#+begin:’ ‘#+end:’ may contain an old table, and
+also several tags like ‘#+name:’, ‘#+plot:’, ‘#+tblfm:’ and any other
+information.
+
+   Upon refresh (‘C-c C-c’) or wizard update (‘C-c C-x x’) the content
+of the block is preserved.
+
+   Previously, only ‘#+tblfm:’ was preserved (and enriched by additional
+formulas in a possible ‘:formula’ parameter).
 
 
 File: orgtbl-join.info,  Node: Example,  Next: In-place Push Pull,  Prev: New,  Up: Top
@@ -1100,6 +1107,8 @@ File: orgtbl-join.info,  Node: Changes,  Next: GPL 3 License,  Prev: Author cont
    • Aggregation of the titles of this README.
    • New free-form wizard.
    • Wizard can now be called in basic or expert mode.
+   • Preserve every side lines in ‘#+begin:’ … ‘#+end:’ blocks upon
+     refresh or wizard update.
 
 
 File: orgtbl-join.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -1127,42 +1136,42 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 Tag Table:
 Node: Top200
 Node: New1477
-Node: Example1660
-Node: A cooking recipe1822
-Node: SQL equivalent3684
-Node: In-place Push Pull4150
-Node: _In-place_ mode4439
-Node: _Push_ mode4784
-Node: _Pull_ mode5581
-Node: As a rule of thumb6709
-Node: Matching rows7218
-Node: Duplicate rows7754
-Node: How to handle missing rows?9571
-Node: Wizard11809
-Node: Guiding (traditional) wizard12075
-Node: Experimental free form wizard13931
-Node: Wide variety of input tables15581
-Node: Standard Org Mode input16138
-Node: Virtual input table from Babel16572
-Node: An Org ID18609
-Node: CSV input19116
-Node: JSON input20069
-Node: Input slicing20526
-Node: Malformed input tables21257
-Node: Headers22153
-Node: About reference tables23143
-Node: Multiple reference tables23844
-Node: Zero reference table24503
-Node: Joining 2 similar tables25497
-Node: Selecting the output columns27906
-Node: Post processing29686
-Node: Computing spreadsheet formulas afterward29939
-Node: Algorithm post processing31221
-Node: Chaining33113
-Node: Installation33732
-Node: Author contributors35024
-Node: Changes35889
-Node: GPL 3 License37425
+Node: Example1976
+Node: A cooking recipe2138
+Node: SQL equivalent4000
+Node: In-place Push Pull4466
+Node: _In-place_ mode4755
+Node: _Push_ mode5100
+Node: _Pull_ mode5897
+Node: As a rule of thumb7025
+Node: Matching rows7534
+Node: Duplicate rows8070
+Node: How to handle missing rows?9887
+Node: Wizard12125
+Node: Guiding (traditional) wizard12391
+Node: Experimental free form wizard14247
+Node: Wide variety of input tables15897
+Node: Standard Org Mode input16454
+Node: Virtual input table from Babel16888
+Node: An Org ID18925
+Node: CSV input19432
+Node: JSON input20385
+Node: Input slicing20842
+Node: Malformed input tables21573
+Node: Headers22469
+Node: About reference tables23459
+Node: Multiple reference tables24160
+Node: Zero reference table24819
+Node: Joining 2 similar tables25813
+Node: Selecting the output columns28222
+Node: Post processing30002
+Node: Computing spreadsheet formulas afterward30255
+Node: Algorithm post processing31537
+Node: Chaining33429
+Node: Installation34048
+Node: Author contributors35340
+Node: Changes36205
+Node: GPL 3 License37852
 
 End Tag Table
 
