@@ -47,9 +47,9 @@ buffer. When done, the buffer and the original, untouched
 ;; with 2 copies of the simple one
 (rx-define joinblock
   (group
-   "#+begin: " (* not-newline) "\n"
+   (* blank) "#+begin: " (* not-newline) "\n"
    (*? (* any) "\n")
-   "#+end:" (* any) "\n"))
+   (* blank) "#+end:" (* any) "\n"))
 
 (save-excursion
   (goto-char (point-min))
@@ -150,3 +150,38 @@ buffer. When done, the buffer and the original, untouched
 | white  | #FFF   | blanka    |
 |--------+--------+-----------|
 #+END:
+
+* not at beginning of line
+#+begin_src elisp :results none
+(orgtbl-join-unfold-test
+ "C-e <tab>"
+ "<down> <down> <down> <down> <down> <down> <down> <down> <down> <down> <down> <down> <down> <down>"
+ "<end> <tab>"
+ "$4 SPC $3 SPC $2 SPC $1"
+ "<up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <up>"
+ "<left> <tab> C-c C-c")
+#+end_src
+   #+BEGIN: join :mas-table "unittests.org:missing-header" :mas-column "$1" :ref-table "unittests.org:ref-missing-header" :ref-column "$1" :cols "$4 $3 $2 $1"
+   | yes   | 33 | 12 | a |
+   | 32    | 33 | 12 | a |
+   | no    | 12 | 13 | c |
+   | 71    | 12 | 13 | c |
+   | yes   | 12 | 14 | x |
+   | 13    | 45 | 15 | y |
+   | maybe | 45 | 15 | y |
+   | no    | 45 | 15 | y |
+   | 15    |  7 |  7 | z |
+   | yes   |  7 |  7 | z |
+   #+END:
+   #+BEGIN: join :mas-table "unittests.org:missing-header" :mas-column "$1" :ref-table "unittests.org:ref-missing-header" :ref-column "$1"
+   | a | 12 | 33 | yes   |
+   | a | 12 | 33 | 32    |
+   | c | 13 | 12 | no    |
+   | c | 13 | 12 | 71    |
+   | x | 14 | 12 | yes   |
+   | y | 15 | 45 | 13    |
+   | y | 15 | 45 | maybe |
+   | y | 15 | 45 | no    |
+   | z |  7 |  7 | 15    |
+   | z |  7 |  7 | yes   |
+   #+END:

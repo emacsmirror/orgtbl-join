@@ -1769,6 +1769,7 @@ It it returns non-nil, the TAB processing will stop there."
            (re-search-forward
             (rx
              point
+             (* blank)
              "#+"
              (group (+ (any "a-z0-9_-")))
              ":"
@@ -1797,7 +1798,7 @@ then proceed to folding, otherwise unfold."
         (beginning-of-line)
         (let ((case-fold-search t))
           (re-search-forward
-           (rx point "#+join:")
+           (rx point (* blank) "#+join:")
            nil t)))
       (org-TAB-begin-join-fold)
     (org-TAB-begin-join-unfold)))
@@ -1817,13 +1818,13 @@ then proceed to folding, otherwise unfold."
   "Prepare an a-list of all unfolded parameters."
   (interactive)
   (save-excursion
-    (re-search-backward (rx bol "#+begin:") nil t)
+    (re-search-backward (rx bol (* blank) "#+begin:") nil t)
     (cl-loop
      do (forward-line 1)
      while
      (let ((case-fold-search t))
        (re-search-forward
-        (rx point "#+join:" (* blank)
+        (rx point (* blank) "#+join:" (* blank)
             (group (+ (any ":a-z0-9_-")))
             (* blank)
             (group (* nonl)))
