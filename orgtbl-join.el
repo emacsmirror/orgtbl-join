@@ -1418,6 +1418,26 @@ Up to now, the reference tables used in the joining are:
     (goto-char (point-min))
     (select-window main-window)))
 
+(defun orgtbl-join--read-file-name (prompt oldfile)
+  "Like `read-file-name', but avoid full directory.
+When the selected file is in the current directory, the
+directory part of the filename is stripped.
+OLDFILE, if any, is the filename to modify,
+with or without a directory part.
+PROMPT is the same as for `read-file-name'."
+  (unless oldfile (setq oldfile ""))
+  (let ((file
+         (read-file-name
+          prompt
+          (or (file-name-directory oldfile) default-directory)
+          nil
+          nil
+          (file-name-nondirectory oldfile))))
+    (if (equal (file-name-directory (expand-file-name file))
+               default-directory)
+        (file-name-nondirectory file)
+      file)))
+
 (defun orgtbl-join--wizard-query-table (table typeoftable expert)
   "Query the 4 fields composing a generalized table: file:name:params:slice.
 It may be only 3 fields in case of orgid:params:slice or
@@ -1466,11 +1486,7 @@ it is queried even when EXPERT is nil."
         (let ((insert-default-directory nil))
           (setq file
                 (orgtbl-join--nil-if-empty
-                 (read-file-name "File (RET for current buffer): "
-                                 nil
-                                 nil
-                                 nil
-                                 file)))))
+                 (orgtbl-join--read-file-name "File (RET for current buffer): " file)))))
 
       (orgtbl-join--display-help :name)
       (setq name
@@ -1743,7 +1759,6 @@ it is queried even when EXPERT is nil."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unfold, Fold
-;; Experimental
 ;; Typing TAB on a line like
 ;; #+begin join params…
 ;; unfolds the parameters: a new line for each parameter
@@ -1985,13 +2000,7 @@ If there is no header, $1 $2 $3... is returned."
   "Provide help and completion for the #+join: mas-file XXX parameter."
   (orgtbl-join--display-help :masfile)
   (orgtbl-join--TAB-replace-value
-   (lambda (old)
-     (read-file-name
-      "File: "
-      (file-name-directory    old)
-      nil
-      nil
-      (file-name-nondirectory old)))))
+   (lambda (old) (orgtbl-join--read-file-name "File: " old))))
 
 (defun org-TAB-join-:mas-name ()
   "Provide help and completion for the #+join: mas-name XXX parameter."
@@ -2034,13 +2043,7 @@ If there is no header, $1 $2 $3... is returned."
   "Provide help and completion for the #+join: ref-file XXX parameter."
   (orgtbl-join--display-help :reffile)
   (orgtbl-join--TAB-replace-value
-   (lambda (old)
-     (read-file-name
-      "File: "
-      (file-name-directory    old)
-      nil
-      nil
-      (file-name-nondirectory old)))))
+   (lambda (old) (orgtbl-join--read-file-name "File: " old))))
 
 (defun org-TAB-join-:ref-name ()
   "Provide help and completion for the #+join: ref-name XXX parameter."
