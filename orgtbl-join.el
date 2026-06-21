@@ -473,6 +473,16 @@ The header have an ID property equal to ID in a PROPERTY drawer."
    (not (string-match-p (rx bos (* blank) eos) field))
    field))
 
+(defun orgtbl-join--cell-to-string (cell)
+  "Convert CELL (a cell in the input table) to a string if it is not already."
+  (message "cell-to-string %S" cell)
+  (cond
+   ((stringp cell) cell)
+   ((not cell) "")
+   ((numberp cell) (number-to-string cell))
+   ((symbolp cell) (symbol-name cell))
+   (t (format "%s" cell))))
+
 (defun orgtbl-join--parse-locator (locator)
   "Parse LOCATOR, a description of where to find the input table.
 The result is a vector containing:
@@ -544,8 +554,7 @@ A slicing may be applied to the table, to select rows or columns.
 The syntax for slicing is like [1:3] or [1:3,2:5].
 Return it as a Lisp list of lists.
 An horizontal line is translated as the special symbol `hline'."
-  (unless (stringp name-or-id)
-    (setq name-or-id (format "%s" name-or-id)))
+  (setq name-or-id (orgtbl-join--cell-to-string name-or-id))
   (let*
       ((struct (orgtbl-join--parse-locator name-or-id))
        (file   (aref struct 0))
@@ -611,8 +620,7 @@ and the other way around."
 This is the opposite of `orgtbl-join--split-string-with-quotes'."
   (if (listp cols)
       (mapconcat
-       (lambda (x)
-         (format "%s" x)) ;; x already a string? returns it unchanged
+       #'orgtbl-join--cell-to-string ;; already a string? returns it unchanged
        cols " ")
     cols))
 
@@ -725,11 +733,8 @@ special symbol `hline' to mean an horizontal line."
 		      for mx on maxwidths
 		      for nu on numbers
 		      for ne on non-empty
-		      for cellnp = (car cell)
-		      do (cond ((not cellnp)
-				(setcar cell (setq cellnp "")))
-		       	       ((not (stringp cellnp))
-		      		(setcar cell (setq cellnp (format "%s" cellnp)))))
+		      for cellnp = (orgtbl-join--cell-to-string (car cell))
+                      do (setcar cell cellnp)
 		      if (string-match-p org-table-number-regexp cellnp)
 		      do (setcar nu (1+ (car nu)))
 		      unless (string= cellnp "")
@@ -789,15 +794,6 @@ special symbol `hline' to mean an horizontal line."
   ;; inactivating jit-lock-after-change boosts performance a lot
   (cl-letf (((symbol-function 'jit-lock-after-change) (lambda (_a _b _c)) ))
     (insert (orgtbl-join--elisp-table-to-string table))))
-
-(defun orgtbl-join--cell-to-string (cell)
-  "Convert CELL (a cell in the input table) to a string if it is not already."
-  (cond
-   ((not cell) cell)
-   ((stringp cell) cell)
-   ((numberp cell) (number-to-string cell))
-   ((symbolp cell) (symbol-name cell))
-   (t (error "cell %S is not a number neither a string" cell))))
 
 (defun orgtbl-join--get-header-table (table &optional asstring)
   "Return the header of TABLE as a list of column names.
@@ -1033,8 +1029,7 @@ COLS is the list of columns that must appear in the result
 if COLS is nil, all columns appear in the result
 Returns MASTABLE enriched with material from REFTABLE."
   (unless full (setq full "mas")) ;; default value is "mas"
-  (unless (stringp full)
-    (setq full (format "%s" full)))
+  (setq full (orgtbl-join--cell-to-string full))
   (let ((result (orgtbl-join--list-create))
 	(width
 	 (cl-loop for row in mastable
@@ -1526,6 +1521,13 @@ it is queried even when EXPERT is nil."
 
     (orgtbl-join--assemble-locator file name orgid params slice)))
 
+(defun orgtbl-join--header-as-string (headerlist)
+  "Convert a table-header as a list to a string.
+The result is intended to be displayed in Org Mode."
+  (mapconcat
+   (lambda (x) (format " ~%s~" x))
+   headerlist))
+
 ;; bazilo]
 
 (defun orgtbl-join--join-query-column
@@ -1543,7 +1545,7 @@ KEEPANSWER should be true to keep the user's answer into ALLCOLUMNS."
   (let ((completions (orgtbl-join--get-header-table table)))
     (orgtbl-join--display-help
      help
-     (mapconcat (lambda (x) (format " ~%s~" x)) completions))
+     (orgtbl-join--header-as-string completions))
     (let ((answer
            (completing-read
             prompt
@@ -1650,17 +1652,13 @@ The updated PARAMS is returned."
                   (if dup
                       (format
                        "\nBeware, those columns have duplicate names:\n  %s"
-                       (mapconcat
-                        (lambda (x) (format " ~%s~" x))
-                        dup))
+                       (orgtbl-join--header-as-string dup))
                     "")))
             (orgtbl-join--display-help
              :cols
              (format
               "%s%s"
-              (mapconcat
-               (lambda (x) (format " ~%s~" x))
-               allcolumns)
+              (orgtbl-join--header-as-string allcolumns)
               dupmsg)))
           (setq cols
                 (orgtbl-join--nil-if-empty
@@ -1955,9 +1953,9 @@ individual parameter for an easier reading."
             (orgtbl-join--merge-list-into-single-string
              (or (orgtbl-join--plist-get-remove line :cols) "")))
     (insert "\n#+join: :cond "
-            (format "%s" (or  (orgtbl-join--plist-get-remove line :cond) "")))
+            (orgtbl-join--cell-to-string (orgtbl-join--plist-get-remove line :cond)))
     (insert "\n#+join: :post "
-            (format "%s" (or  (orgtbl-join--plist-get-remove line :post) "")))
+            (orgtbl-join--cell-to-string (orgtbl-join--plist-get-remove line :post)))
     (cl-loop
      for pair on line
      if (car pair)
@@ -1975,24 +1973,26 @@ They are computed by looking at the distant table
 (an Org table, a Babel block, a CSV, or a JSON)
 and recovering its header if any.
 If there is no header, $1 $2 $3... is returned."
-  (let ((alist (orgtbl-join-get-all-unfolded)))
-    (mapconcat
-     (lambda (x) (format " ~%s~" x))
-     (append
-      (orgtbl-join--get-header-table
-       (orgtbl-join--assemble-locator
-        (alist-get :mas-file   alist)
-        (alist-get :mas-name   alist)
-        (alist-get :mas-orgid  alist)
-        (alist-get :mas-params alist)
-        (alist-get :mas-slice  alist)))
-      (orgtbl-join--get-header-table
-       (orgtbl-join--assemble-locator
+  (let*
+      ((alist (orgtbl-join-get-all-unfolded))
+       (mas-table
+        (orgtbl-join--assemble-locator
+         (alist-get :mas-file   alist)
+         (alist-get :mas-name   alist)
+         (alist-get :mas-orgid  alist)
+         (alist-get :mas-params alist)
+         (alist-get :mas-slice  alist)))
+       (ref-table
+        (orgtbl-join--assemble-locator
         (alist-get :ref-file   alist)
         (alist-get :ref-name   alist)
         (alist-get :ref-orgid  alist)
         (alist-get :ref-params alist)
-        (alist-get :ref-slice  alist)))))))
+        (alist-get :ref-slice  alist))))
+    (orgtbl-join--header-as-string
+     (append
+      (orgtbl-join--get-header-table mas-table)
+      (orgtbl-join--get-header-table ref-table)))))
 
 ;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
 

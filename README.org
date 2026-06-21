@@ -1047,6 +1047,7 @@ Contributors
 - Preserve every side lines in =#+begin:= … =#+end:= blocks upon refresh
   or wizard update.
 - Simplify directory part when querying a file name.
+- Centralize cell→string in =-cell-to-string= which is the fastest.
 
 * GPL 3 License
 :PROPERTIES:
