@@ -66,7 +66,7 @@
 (require 'org-table)
 (require 'org-id)
 (eval-when-compile (require 'cl-lib))
-(require 'rx)
+(eval-when-compile (require 'rx))
 (require 'json)
 
 ;;; Code:
@@ -258,16 +258,27 @@ COLNAMES, if not nil, is a list of column names."
 
 (eval-when-compile ;; not used at runtime
 
+  ;; blanks or spaces are always designed as several
+  ;; thus it make sense to create "blanks".
+  ;; "blank" designates the UNICODE category of "spacing separators" (plus TAB)
+  ;; "space" designates the whitespace syntax which depends on the major-mode
+  ;; from the info doc:
+  ;; if you only need to look for ASCII whitespace characters,
+  ;; we suggest using an explicit set of character alternatives,
+  ;; such as ‘[ \t]’, instead, as it will be faster than ‘[[:blank:]]’.
+
+  (rx-define blanks (* (any " \t ")))
+
   ;; search for table name, such as:
   ;; #+tablename: mytable
   (rx-define tblname
-    (seq bol (* blank) "#+" (? "tbl") "name:" (* blank)))
+    (seq bol blanks "#+" (? "tbl") "name:" blanks))
 
   ;; skip lines beginning with # in order to reach the start of table
   (rx-define skip-meta-table (firstchars)
     (seq
-     (0+ (0+ blank) (? firstchars (0+ nonl)) "\n")
-     (0+ blank) "|"))
+     (0+ blanks (? firstchars (0+ nonl)) "\n")
+     blanks "|"))
 
   ;; just to get ride of a few parenthesis
   (rx-define notany (&rest list)
@@ -303,7 +314,7 @@ If FILE is nil, use current buffer."
         (cl-loop
          while
          (re-search-forward
-          (rx tblname (group (*? nonl)) (* blank) eol)
+          (rx tblname (group (*? nonl)) blanks eol)
           nil t)
          collect (match-string-no-properties 1))))))
 
@@ -335,10 +346,10 @@ If FILE is nil, look in the current buffer."
       (let ((case-fold-search t))
         (if (re-search-forward
              (rx ;; a single regexp :)
-              tblname (literal name) (* blank) "\n"
-              (0+ blank) "#+begin" (0+ nonl) "\n"
+              tblname (literal name) blanks "\n"
+              blanks "#+begin" (0+ nonl) "\n"
               (group (*? anything))
-              bol (* space) "#+end")
+              bol blanks "#+end")
              nil t)
             (match-string-no-properties 1))))))
 
@@ -446,7 +457,7 @@ If FILE is nil, look in the current buffer."
        (let ((case-fold-search t))
 	 (re-search-forward
 	  (rx
-           tblname (literal name) (* blank) eol
+           tblname (literal name) blanks eol
            (skip-meta-table "#"))
 	  nil t))
        (orgtbl-join--table-to-lisp)))))
@@ -470,7 +481,7 @@ The header have an ID property equal to ID in a PROPERTY drawer."
 (defun orgtbl-join--nil-if-empty (field)
   (and
    field
-   (not (string-match-p (rx bos (* blank) eos) field))
+   (not (string-match-p (rx bos blanks eos) field))
    field))
 
 (defun orgtbl-join--cell-to-string (cell)
@@ -500,15 +511,11 @@ as an Org Id and put in the `orgid' field."
       (string-match
        (rx
         bos
-        (* space)
-        (? (group-n 1 (* (notany ":"))) ":")
-        (* space)
-        (   group-n 2 (* (notany "[]():")))
-        (* space)
-        (? (group-n 3 "(" (* nonl) ")"))
-        (* space)
-        (? (group-n 4 "[" (* nonl) "]"))
-        (* space)
+        blanks (? (group-n 1 (* (notany ":"))) ":")
+        blanks (   group-n 2 (* (notany "[]():")))
+        blanks (? (group-n 3 "(" (* nonl) ")"))
+        blanks (? (group-n 4 "[" (* nonl) "]"))
+        blanks
         eos)
        locator)
     (user-error "Malformed table reference %S" locator))
@@ -607,7 +614,7 @@ and the other way around."
       (while (and (< start l)
 		  (string-match
                    (rx
-                    (* blank)
+                    blanks
                     (group (+ (quotedcolname (notany " '\"")))))
 		   string start))
 	(orgtbl-join--list-append result (match-string 1 string))
@@ -880,7 +887,7 @@ with an Org Mode table."
    content
    (let ((case-fold-search t))
      (string-match
-      (rx bol (* blank) (group "#+tblfm:" (* nonl)))
+      (rx bol blanks (group "#+tblfm:" (* nonl)))
       content))
    (match-string 1 content)))
 
@@ -967,7 +974,7 @@ TABLE is a list of lists."
     (when content
       (setq content
             (replace-regexp-in-string
-             (rx bol (* blank) "\n")
+             (rx bol blanks "\n")
              ""
              content))
       (if (string-match
@@ -975,7 +982,7 @@ TABLE is a list of lists."
             bos
             (group (*? anything))
             (+
-             bol (* blank)
+             bol blanks
              (or "|" "#+tblfm:")
              (* nonl) "\n")
             (group (* anything))
@@ -1280,7 +1287,7 @@ If the line the (point) is on do not match TYPE, return nil."
         (case-fold-search t))
     (and
      (string-match
-      (rx bos (* blank) "#+begin:" (* blank) (group (+ word)) (group (* nonl)) eos)
+      (rx bos blanks "#+begin:" blanks (group (+ word)) (group (* nonl)) eos)
       line)
      (equal (match-string 1 line) type)
      (let ((list (read (concat "(" (match-string 2 line) ")"))))
@@ -1781,13 +1788,9 @@ It it returns non-nil, the TAB processing will stop there."
            (re-search-forward
             (rx
              point
-             (* blank)
-             "#+"
-             (group (+ (any "a-z0-9_-")))
-             ":"
-             (* blank)
-             (group (+ (any ":a-z0-9_-")))
-             (* blank))
+             blanks "#+" (group (+ (any "a-z0-9_-"))) ":"
+             blanks (group (+ (any ":a-z0-9_-")))
+             blanks)
             nil t)))
         (let ((symb
                (intern
@@ -1810,7 +1813,7 @@ then proceed to folding, otherwise unfold."
         (beginning-of-line)
         (let ((case-fold-search t))
           (re-search-forward
-           (rx point (* blank) "#+join:")
+           (rx point blanks "#+join:")
            nil t)))
       (org-TAB-begin-join-fold)
     (org-TAB-begin-join-unfold)))
@@ -1830,16 +1833,16 @@ then proceed to folding, otherwise unfold."
   "Prepare an a-list of all unfolded parameters."
   (interactive)
   (save-excursion
-    (re-search-backward (rx bol (* blank) "#+begin:") nil t)
+    (re-search-backward (rx bol blanks "#+begin:") nil t)
     (cl-loop
      do (forward-line 1)
      while
      (let ((case-fold-search t))
        (re-search-forward
-        (rx point (* blank) "#+join:" (* blank)
-            (group (+ (any ":a-z0-9_-")))
-            (* blank)
-            (group (* nonl)))
+        (rx point
+            blanks "#+" (or "join" "transpose" "join") ":"
+            blanks (group (+ (any ":a-z0-9_-")))
+            blanks (group (* nonl)))
         nil t))
      collect
      (cons
