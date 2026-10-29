@@ -28,6 +28,8 @@ Also, the directory part is simplified when querying a file name.
 - [[#example][Example]]
   - [[#a-cooking-recipe][A cooking recipe]]
   - [[#sql-equivalent][SQL equivalent]]
+  - [[#c-equivalent][C++ equivalent]]
+  - [[#awk-equivalent][Awk equivalent]]
 - [[#in-place-push-pull][In-place, Push, Pull]]
   - [[#in-place-mode][In-place mode]]
   - [[#push-mode][Push mode]]
@@ -45,6 +47,7 @@ Also, the directory part is simplified when querying a file name.
   - [[#an-org-id][An Org ID]]
   - [[#csv-input][CSV input]]
   - [[#json-input][JSON input]]
+  - [[#fixed-width-input][Fixed-width input]]
   - [[#input-slicing][Input slicing]]
   - [[#malformed-input-tables][Malformed input tables]]
   - [[#headers][Headers]]
@@ -144,6 +147,63 @@ configured with the =:full= parameter).
   from recipe, nut
   left outer join nut on recipe.type = nut.type;
 #+end_src
+
+** C++ equivalent
+:PROPERTIES:
+:CUSTOM_ID: c-equivalent
+:END:
+
+C++ has an =unordered_map= in its standard library, useful to match
+cells from both tables. We also use the standard =string= type to store
+table cells.
+
+#+begin_src C++ '(<iostream> <unordered_map> <string>)
+using namespace std;
+unordered_map<string,array<string,4>> thenut;
+
+for (auto row : nut)
+  thenut[row[0]] = { row[1], row[2], row[3], row[4] };
+
+for (auto cell : recipe_header)
+  cout<<cell<<" ";
+for (auto cell : nut_header)
+  cout<<cell<<" ";
+cout<<"\n";
+
+for (auto row : recipe) {
+  for (uint i=0; i<recipe_cols; i++)
+    cout<<row[i]<<" ";
+  string type = row[0];
+  cout<<type<<" ";
+  auto& n = thenut[type];
+  for (auto cell : n)
+    cout<<cell<<" ";
+  cout<<"\n";
+}
+#+end_src
+
+** Awk equivalent
+:PROPERTIES:
+:CUSTOM_ID: awk-equivalent
+:END:
+Awk is a line-oriented filter which has been around in Unix for
+decades. We use the trick =NR==FNR= to distinguish two CSV input files.
+The =nut.csv= file is read first, storing its content in an associative
+array. Then =recipe.csv= is read, immediately printing it along with
+material found in the associative array.
+
+The script:
+#+begin_src awk
+FNR>1 && NR==FNR { nut[$1]=sprintf("%s %s %s %s",$2,$3,$4,$5); next }
+FNR>1 { print $1, $2, nut[$1]; }
+#+end_src
+
+Run it like that:
+#+begin_src sh
+awk -f join.awk nut.csv recipe.csv | column -t
+#+end_src
+
+(the =column -t= command nicely aligns columns).
 
 * In-place, Push, Pull
 :PROPERTIES:

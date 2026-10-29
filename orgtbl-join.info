@@ -46,6 +46,8 @@ Example
 
 * A cooking recipe::
 * SQL equivalent::
+* C++ equivalent::
+* Awk equivalent::
 
 In-place, Push, Pull
 
@@ -116,6 +118,8 @@ File: orgtbl-join.info,  Node: Example,  Next: In-place Push Pull,  Prev: New,  
 
 * A cooking recipe::
 * SQL equivalent::
+* C++ equivalent::
+* Awk equivalent::
 
 
 File: orgtbl-join.info,  Node: A cooking recipe,  Next: SQL equivalent,  Up: Example
@@ -167,7 +171,7 @@ with the needed nutrition facts:
      | tofu     |  100 |   0.7 |   0.5 |     6.6 |  1.4 |
 
 
-File: orgtbl-join.info,  Node: SQL equivalent,  Prev: A cooking recipe,  Up: Example
+File: orgtbl-join.info,  Node: SQL equivalent,  Next: C++ equivalent,  Prev: A cooking recipe,  Up: Example
 
 2.2 SQL equivalent
 ==================
@@ -183,6 +187,60 @@ configured with the ‘:full’ parameter).
      select *
      from recipe, nut
      left outer join nut on recipe.type = nut.type;
+
+
+File: orgtbl-join.info,  Node: C++ equivalent,  Next: Awk equivalent,  Prev: SQL equivalent,  Up: Example
+
+2.3 C++ equivalent
+==================
+
+C++ has an ‘unordered_map’ in its standard library, useful to match
+cells from both tables.  We also use the standard ‘string’ type to store
+table cells.
+
+     using namespace std;
+     unordered_map<string,array<string,4>> thenut;
+
+     for (auto row : nut)
+       thenut[row[0]] = { row[1], row[2], row[3], row[4] };
+
+     for (auto cell : recipe_header)
+       cout<<cell<<" ";
+     for (auto cell : nut_header)
+       cout<<cell<<" ";
+     cout<<"\n";
+
+     for (auto row : recipe) {
+       for (uint i=0; i<recipe_cols; i++)
+         cout<<row[i]<<" ";
+       string type = row[0];
+       cout<<type<<" ";
+       auto& n = thenut[type];
+       for (auto cell : n)
+         cout<<cell<<" ";
+       cout<<"\n";
+     }
+
+
+File: orgtbl-join.info,  Node: Awk equivalent,  Prev: C++ equivalent,  Up: Example
+
+2.4 Awk equivalent
+==================
+
+Awk is a line-oriented filter which has been around in Unix for decades.
+We use the trick ‘NR==FNR’ to distinguish two CSV input files.  The
+‘nut.csv’ file is read first, storing its content in an associative
+array.  Then ‘recipe.csv’ is read, immediately printing it along with
+material found in the associative array.
+
+   The script:
+     FNR>1 && NR==FNR { nut[$1]=sprintf("%s %s %s %s",$2,$3,$4,$5); next }
+     FNR>1 { print $1, $2, nut[$1]; }
+
+   Run it like that:
+     awk -f join.awk nut.csv recipe.csv | column -t
+
+   (the ‘column -t’ command nicely aligns columns).
 
 
 File: orgtbl-join.info,  Node: In-place Push Pull,  Next: Matching rows,  Prev: Example,  Up: Top
@@ -1461,46 +1519,48 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Tag Table:
 Node: Top200
-Node: New1635
-Node: Example2204
-Node: A cooking recipe2366
-Node: SQL equivalent4228
-Node: In-place Push Pull4694
-Node: _In-place_ mode4983
-Node: _Push_ mode5328
-Node: _Pull_ mode6125
-Node: As a rule of thumb7253
-Node: Matching rows7762
-Node: Duplicate rows8298
-Node: How to handle missing rows?10115
-Node: Wizard12353
-Node: Guiding (traditional) wizard12619
-Node: Experimental free form wizard14475
-Node: Wide variety of input tables16125
-Node: Standard Org Mode input16704
-Node: Virtual input table from Babel17204
-Node: An Org ID19526
-Node: CSV input20126
-Node: JSON input21635
-Node: Fixed-width input24119
-Node: Input slicing29322
-Node: Malformed input tables30057
-Node: Headers30953
-Node: About reference tables31943
-Node: Multiple reference tables32644
-Node: Zero reference table33303
-Node: Joining 2 similar tables34297
-Node: Selecting the output columns36706
-Node: Post processing38486
-Node: Computing spreadsheet formulas afterward38748
-Node: Algorithm post processing40030
-Node: Virtual input table from Babel (1)41905
-Node: Wide variety of input tables (1)43383
-Node: Chaining46573
-Node: Installation47206
-Node: Author contributors48491
-Node: Changes49356
-Node: GPL 3 License51192
+Node: New1673
+Node: Example2242
+Node: A cooking recipe2442
+Node: SQL equivalent4304
+Node: C++ equivalent4793
+Node: Awk equivalent5671
+Node: In-place Push Pull6389
+Node: _In-place_ mode6678
+Node: _Push_ mode7023
+Node: _Pull_ mode7820
+Node: As a rule of thumb8948
+Node: Matching rows9457
+Node: Duplicate rows9993
+Node: How to handle missing rows?11810
+Node: Wizard14048
+Node: Guiding (traditional) wizard14314
+Node: Experimental free form wizard16170
+Node: Wide variety of input tables17820
+Node: Standard Org Mode input18399
+Node: Virtual input table from Babel18899
+Node: An Org ID21221
+Node: CSV input21821
+Node: JSON input23330
+Node: Fixed-width input25814
+Node: Input slicing31017
+Node: Malformed input tables31752
+Node: Headers32648
+Node: About reference tables33638
+Node: Multiple reference tables34339
+Node: Zero reference table34998
+Node: Joining 2 similar tables35992
+Node: Selecting the output columns38401
+Node: Post processing40181
+Node: Computing spreadsheet formulas afterward40443
+Node: Algorithm post processing41725
+Node: Virtual input table from Babel (1)43600
+Node: Wide variety of input tables (1)45078
+Node: Chaining48268
+Node: Installation48901
+Node: Author contributors50186
+Node: Changes51051
+Node: GPL 3 License52887
 
 End Tag Table
 
